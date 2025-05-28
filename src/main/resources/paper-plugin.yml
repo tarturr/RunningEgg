@@ -1,0 +1,6 @@
+name: RunningEgg
+version: '1.0'
+main: fr.tartur.games.runningegg.Core
+api-version: '1.21'
+authors: [ Tartur_ ]
+description: Paper plugin made out of a TikTok trend.
