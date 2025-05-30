@@ -1,7 +1,10 @@
 package fr.tartur.games.runningegg.game;
 
+import fr.tartur.games.runningegg.Core;
 import fr.tartur.games.runningegg.api.events.GameEndEvent;
 import fr.tartur.games.runningegg.api.events.GameStartEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,11 +19,13 @@ import java.util.logging.Logger;
 public class GameManager implements Listener {
 
     private final Logger log;
+    private final Core core;
     private final Set<Game> games;
     private final WaitingRoom waitingRoom;
 
-    public GameManager(Logger log, WaitingRoom waitingRoom) {
-        this.log = log;
+    public GameManager(Core core, WaitingRoom waitingRoom) {
+        this.log = core.getLogger();
+        this.core = core;
         this.games = new HashSet<>();
         this.waitingRoom = waitingRoom;
     }
@@ -28,7 +33,7 @@ public class GameManager implements Listener {
     @EventHandler
     public void onGameStart(GameStartEvent event) {
         final Game.Data data = event.getGameData();
-        final Set<Player> players = data.players();
+        final List<Player> players = data.players();
         final List<Location> spawnPoints = data.settings().playerLocations();
 
         final int playerCount = players.size();
@@ -40,14 +45,19 @@ public class GameManager implements Listener {
             return;
         }
 
-        final Game game = new Game(this.log, data);
+        final Game game = new Game(core, data);
         this.games.add(game);
+        this.core.getServer().getPluginManager().registerEvents(game, this.core);
         game.start();
     }
 
     @EventHandler
     public void onGameEnd(GameEndEvent event) {
-        this.games.remove(event.getGame());
+        final Game game = event.getGame();
+        
+        game.kickAll(Component.text("Reconnecte-toi pour jouer à nouveau ! :)", NamedTextColor.GREEN));
+        game.unregisterEvents();
+        this.games.remove(game);
     }
 
     public Optional<Game> getGameOfPlayer(Player player) {
