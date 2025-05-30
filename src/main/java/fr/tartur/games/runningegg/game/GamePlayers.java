@@ -5,11 +5,14 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +20,7 @@ import java.util.Random;
 
 public class GamePlayers {
 
+    private static final Logger log = LogManager.getLogger(GamePlayers.class);
     private final Map<Player, GameRole> roles;
     private final Random random;
     private final Location middle;
@@ -80,11 +84,17 @@ public class GamePlayers {
     
     public void alert() {
         final PotionEffect speed = new PotionEffect(PotionEffectType.SPEED, PotionEffect.INFINITE_DURATION, 1);
+        final Title.Times duration = Title.Times.times(
+                Duration.ofMillis(250L),
+                Duration.ofMillis(1500L),
+                Duration.ofMillis(250L)
+        );
 
         this.playSound(this.hunter, Sound.ENTITY_ENDER_DRAGON_GROWL);
         this.hunter.showTitle(Title.title(
                 Component.text("CHASSEUR", NamedTextColor.RED),
-                Component.text("Attrapez l'oeuf et tirez sur vos proies !", NamedTextColor.DARK_RED)
+                Component.text("Attrapez l'oeuf et tirez sur vos proies !", NamedTextColor.DARK_RED),
+                duration
         ));
         
         for (final Player pray : this.getPrays()) {
@@ -92,7 +102,8 @@ public class GamePlayers {
             
             pray.showTitle(Title.title(
                     Component.text("PROIE", NamedTextColor.AQUA),
-                    Component.text("Fuyez sans vous faire toucher !", NamedTextColor.DARK_AQUA)
+                    Component.text("Fuyez sans vous faire toucher !", NamedTextColor.DARK_AQUA),
+                    duration
             ));
 
             pray.addPotionEffect(speed);
