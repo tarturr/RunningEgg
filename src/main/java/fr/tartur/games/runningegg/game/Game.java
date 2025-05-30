@@ -56,6 +56,7 @@ public class Game implements ArrowStopListener, Listener {
     
     private State state;
     private boolean eggCanHit;
+    private boolean playerCanHitWorldBorder;
 
     /**
      * Class constructor, which sets the game state as {@link State#LOADING} and loads every resource it needs depending
@@ -73,6 +74,7 @@ public class Game implements ArrowStopListener, Listener {
         
         this.state = State.LOADING;
         this.eggCanHit = true;
+        this.playerCanHitWorldBorder = true;
     }
 
     /**
@@ -91,6 +93,10 @@ public class Game implements ArrowStopListener, Listener {
      * hunter).
      */
     private void loop() {
+        if (this.state == State.CHOOSING) {
+            return;
+        }
+        
         this.reset();
         
         final int hunterIndex = this.players.defineRandomHunter();
@@ -171,13 +177,21 @@ public class Game implements ArrowStopListener, Listener {
      */
     @EventHandler
     public void onPlayerHitsWorldBorder(PlayerHitsWorldBorderEvent event) {
+        if (!this.playerCanHitWorldBorder) {
+            return;
+        }
+        
         final Player player = event.getPlayer();
         
         if (this.players.hasRole(player, GameRole.PRAY)) {
+            this.playerCanHitWorldBorder = false;
             this.players.escape(player);
+            
+            Bukkit.getScheduler().scheduleSyncDelayedTask(this.core,
+                    () -> this.playerCanHitWorldBorder = true, 20L);
 
             if (this.players.getPrays().isEmpty()) {
-                this.loop();
+                Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, this::loop, 20L * 5L);
             }
         }
     }

@@ -2,8 +2,6 @@ package fr.tartur.games.runningegg.listeners;
 
 import fr.tartur.games.runningegg.api.events.PlayerHitsWorldBorderEvent;
 import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.bukkit.Location;
 import org.bukkit.WorldBorder;
 import org.bukkit.entity.ItemFrame;
@@ -18,8 +16,6 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 public class PlayerInvariantListener implements Listener {
-
-    private static final Logger log = LogManager.getLogger(PlayerInvariantListener.class);
 
     @EventHandler
     public void onFoodLose(FoodLevelChangeEvent event) {
@@ -63,13 +59,19 @@ public class PlayerInvariantListener implements Listener {
     public void onPlayerMove(PlayerMoveEvent event) {
         final Player player = event.getPlayer();
         final Location location = player.getLocation();
+        final WorldBorder border = player.getWorldBorder();
         
-        final WorldBorder border = player.getWorld().getWorldBorder();
+        if (border == null) {
+            return;
+        }
+        
         final Location center = border.getCenter();
-        final double size = border.getSize() / 2f - 1;
+        final double size = border.getSize() / 2f;
         
-        if (Math.abs(location.getX() - center.getX()) >= size || Math.abs(location.getZ() - center.getZ()) >= size) {
-            log.warn("Touched world border");
+        final double distX = Math.abs(location.getX() - center.getX());
+        final double distZ = Math.abs(location.getZ() - center.getZ());
+        
+        if (distX >= size || distZ >= size) {
             new PlayerHitsWorldBorderEvent(player).callEvent();
         }
     }
