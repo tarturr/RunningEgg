@@ -7,7 +7,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Set;
+import java.util.List;
 
 public class GameStartEvent extends Event {
 
@@ -15,7 +15,7 @@ public class GameStartEvent extends Event {
 
     private final Game.Data gameData;
 
-    public GameStartEvent(Set<Player> players, GameSettings settings) {
+    public GameStartEvent(List<Player> players, GameSettings settings) {
         this.gameData = new Game.Data(players, settings);
     }
 
