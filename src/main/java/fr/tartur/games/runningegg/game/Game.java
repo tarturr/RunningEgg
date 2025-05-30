@@ -17,7 +17,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * Class representing a whole game, able to manage a whole Running Egg game during its lifetime.
@@ -49,7 +48,6 @@ public class Game implements ArrowStopListener, Listener {
             ProjectileHitEvent.getHandlerList()
     );
 
-    private final Logger log;
     private final Core core;
     private final Data data;
     private final Location middle;
@@ -57,6 +55,7 @@ public class Game implements ArrowStopListener, Listener {
     private final GamePlayers players;
     
     private State state;
+    private boolean eggCanHit;
 
     /**
      * Class constructor, which sets the game state as {@link State#LOADING} and loads every resource it needs depending
@@ -66,27 +65,24 @@ public class Game implements ArrowStopListener, Listener {
      * @param data The game data.
      */
     public Game(Core core, Data data) {
-        this.log = core.getLogger();
         this.core = core;
         this.data = data;
         this.middle = data.settings().spinLocation();
         this.frame = new FrameManager(core, this, this.middle);
         this.players = new GamePlayers(data);
+        
         this.state = State.LOADING;
+        this.eggCanHit = true;
     }
 
     /**
      * Starts the game, which also creates the world border and starts the game loop.
      */
     public void start() {
-        if (this.isRunning()) {
-            this.log.warning("Attempted to load a new game, but an instance of the game is already running. " +
-                    "Ignoring it");
-            return;
+        if (!this.isRunning()) {
+            this.players.init();
+            this.loop();
         }
-        
-        this.players.init();
-        this.loop();
     }
 
     /**
@@ -125,10 +121,13 @@ public class Game implements ArrowStopListener, Listener {
      * @param winner The game winner.
      */
     private void stop(Player winner) {
-        this.players.win(winner);
-        Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, () -> {
-            new GameEndEvent(this).callEvent();
-        }, 5 * 20L);
+        if (this.state != State.WIN) {
+            this.state = State.WIN;
+            this.players.win(winner);
+
+            Bukkit.getScheduler().scheduleSyncDelayedTask(this.core,
+                    () -> new GameEndEvent(this).callEvent(), 5 * 20L);
+        }
     }
 
     /**
@@ -183,19 +182,24 @@ public class Game implements ArrowStopListener, Listener {
         }
     }
     
+    // WARNING: This event is called TWICE!
     @EventHandler
     public void onHitByEgg(ProjectileHitEvent event) {
-        if (!(event.getEntity() instanceof Egg)) {
+        if (!(event.getEntity() instanceof Egg && this.eggCanHit)) {
             return;
         }
         
         event.setCancelled(true);
+        this.eggCanHit = false;
+        Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, () -> this.eggCanHit = true, 20L);
         
         if (event.getHitEntity() instanceof Player player) {
             if (this.players.hasRole(player, GameRole.HUNTER)) {
                 player.sendMessage(Component.text("Vous ne pouvez pas vous tirer dessus !",
                         NamedTextColor.DARK_RED));
                 player.getInventory().addItem(ItemStack.of(Material.EGG));
+                
+                return;
             } else {
                 this.players.lose(player);
             }

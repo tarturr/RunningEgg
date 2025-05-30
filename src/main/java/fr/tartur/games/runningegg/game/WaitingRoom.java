@@ -62,14 +62,14 @@ public class WaitingRoom {
 
                             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.5f, 1f);
                         }
-
-                        case 0 -> {
-                            new GameStartEvent(players, settings).callEvent();
-                            reset();
-                        }
                     }
                 }
 
+                if (timer == 0) {
+                    new GameStartEvent(players, settings).callEvent();
+                    reset();
+                }
+                
                 --timer;
             }
         }, 0L, 20L);

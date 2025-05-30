@@ -2,6 +2,8 @@ package fr.tartur.games.runningegg.game;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -14,7 +16,7 @@ import java.util.Map;
 import java.util.Random;
 
 public class GamePlayers {
-    
+
     private final Map<Player, GameRole> roles;
     private final Random random;
     private final Location middle;
@@ -144,7 +146,8 @@ public class GamePlayers {
             if (gamePlayer != winner) {
                 this.setSpectator(gamePlayer);
                 gamePlayer.showTitle(Title.title(
-                        Component.text("FIN DE PARTIE", NamedTextColor.GOLD),
+                        MiniMessage.miniMessage().deserialize("<rainbow>FIN DE PARTIE")
+                                .decorate(TextDecoration.BOLD), 
                         Component.text(winner.getName(), NamedTextColor.RED)
                                 .append(Component.text(" a gagné !", NamedTextColor.AQUA))
                 ));
@@ -208,7 +211,7 @@ public class GamePlayers {
     }
     
     private void playSound(Player player, Sound sound) {
-        player.playSound(player.getLocation(), sound, 1.5f, 1f);
+        player.playSound(player.getLocation(), sound, 1f, 1f);
     }
     
 }
