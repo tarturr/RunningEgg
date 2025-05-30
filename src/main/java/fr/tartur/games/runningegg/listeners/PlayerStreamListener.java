@@ -2,9 +2,7 @@ package fr.tartur.games.runningegg.listeners;
 
 import fr.tartur.games.runningegg.game.Game;
 import fr.tartur.games.runningegg.game.GameManager;
-import fr.tartur.games.runningegg.game.WaitingRoom;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,14 +22,14 @@ public class PlayerStreamListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         final Player player = event.getPlayer();
+        player.setGameMode(GameMode.ADVENTURE);
+        player.getInventory().clear();
+        player.clearActivePotionEffects();
+        player.setLevel(0);
+        player.setExp(0);
         final Optional<Game> correspondingGame = this.manager.getGameOfPlayer(player);
 
-        if (correspondingGame.isPresent()) {
-            final Game game = correspondingGame.get();
-            game.reconnect(player);
-            game.broadcast(Component.text(player.getName(), NamedTextColor.YELLOW)
-                    .append(Component.text(" est de retour parmi nous !", NamedTextColor.GREEN)));
-        } else {
+        if (correspondingGame.isEmpty()) {
             this.manager.join(player);
         }
     }
@@ -44,10 +42,8 @@ public class PlayerStreamListener implements Listener {
         if (correspondingGame.isPresent()) {
             final Game game = correspondingGame.get();
             game.disconnect(player);
-            game.broadcast(Component.text(player.getName(), NamedTextColor.YELLOW)
-                    .append(Component.text(player.getName() + " nous a quittés !", NamedTextColor.RED)));
         } else {
-            this.manager.join(player);
+            this.manager.leave(player);
         }
     }
 
