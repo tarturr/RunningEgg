@@ -26,7 +26,9 @@ public record GameSettings(List<Location> playerLocations, Location spinLocation
         final List<Location> playerLocations = new ArrayList<>();
 
         for (final String label : spawnPoints.getKeys(false)) {
-            playerLocations.add(spawnPoints.getLocation(label));
+            if (!label.equals("spin")) {
+                playerLocations.add(spawnPoints.getLocation(label));
+            }
         }
 
         if (playerLocations.isEmpty()) {
