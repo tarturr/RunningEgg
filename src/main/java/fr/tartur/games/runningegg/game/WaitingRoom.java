@@ -8,23 +8,23 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WaitingRoom {
 
-    private final Set<Player> players;
+    private final List<Player> players;
     private final Core core;
     private final GameSettings settings;
 
-    private BukkitTask task;
+    private int task;
 
     public WaitingRoom(Core core, GameSettings settings) {
         this.core = core;
         this.settings = settings;
-        this.players = new HashSet<>();
+        this.players = new ArrayList<>();
+        this.task = -1;
     }
 
     public void join(Player player) {
@@ -44,26 +44,29 @@ public class WaitingRoom {
     }
 
     private void startScheduler() {
-        this.task = Bukkit.getScheduler().runTaskTimer(this.core, new Runnable() {
+        this.task = Bukkit.getScheduler().scheduleSyncRepeatingTask(this.core, new Runnable() {
             private int timer = 30;
-
+            
             @Override
             public void run() {
-                switch (timer) {
-                    case 30, 20, 15, 10, 5, 4, 3, 2, 1 -> {
-                        for (final Player player : players) {
+                for (final Player player : players) {
+                    player.setExp((float) timer / 30f);
+                    player.setLevel(timer);
+
+                    switch (timer) {
+                        case 30, 20, 15, 10, 5, 4, 3, 2, 1 -> {
                             player.showTitle(Title.title(
-                                    Component.text(this.timer + "S", NamedTextColor.GOLD),
+                                    Component.text(this.timer + "s", NamedTextColor.GOLD),
                                     Component.text("La partie va commencer !", NamedTextColor.RED)
                             ));
 
-                            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 3f, 3f);
+                            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.5f, 1f);
                         }
-                    }
 
-                    case 0 -> {
-                        new GameStartEvent(players, settings);
-                        reset();
+                        case 0 -> {
+                            new GameStartEvent(players, settings).callEvent();
+                            reset();
+                        }
                     }
                 }
 
@@ -73,18 +76,19 @@ public class WaitingRoom {
     }
 
     private void stopScheduler() {
-        this.task.cancel();
-        this.task = null;
+        if (this.task != -1) {
+            Bukkit.getScheduler().cancelTask(this.task);
+            this.task = -1;
+        }
     }
 
     private boolean isStartable() {
-        return this.players.size() >= this.settings.minPlayers() && task == null;
+        return this.players.size() >= this.settings.minPlayers() && task == -1;
     }
 
     private void reset() {
+        this.stopScheduler();
         this.players.clear();
-        this.task.cancel();
-        this.task = null;
     }
 
 }
