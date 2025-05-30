@@ -5,8 +5,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -20,7 +18,6 @@ import java.util.Random;
 
 public class GamePlayers {
 
-    private static final Logger log = LogManager.getLogger(GamePlayers.class);
     private final Map<Player, GameRole> roles;
     private final Random random;
     private final Location middle;
