@@ -1,0 +1,214 @@
+package fr.tartur.games.runningegg.game;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.title.Title;
+import org.bukkit.*;
+import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+public class GamePlayers {
+    
+    private final Map<Player, GameRole> roles;
+    private final Random random;
+    private final Location middle;
+    private final List<Location> spawnPoints;
+    private final WorldBorder border;
+    private Player hunter;
+
+    public GamePlayers(Game.Data data) {
+        this.roles = new HashMap<>();
+        this.random = new Random();
+        this.middle = data.settings().spinLocation();
+        this.spawnPoints = data.settings().playerLocations();
+        this.border = Bukkit.createWorldBorder();
+        this.border.setCenter(this.middle);
+        this.border.setSize(50);
+        
+        for (final Player player : data.players()) {
+            this.roles.put(player, GameRole.WAITING);
+        }
+    }
+    
+    public void init() {
+        for (final Player player : this.getPlaying()) {
+            player.setWorldBorder(this.border);
+        }
+    }
+    
+    /**
+     * Defines a randomly-chosen new {@link GameRole#HUNTER}, putting every other player as {@link GameRole#PRAY}.
+     */
+    public int defineRandomHunter() {
+        final int index = this.pickRandomPlayer();
+        this.roles.put(this.hunter, GameRole.HUNTER);
+
+        for (final Player pray : this.getPlaying()) {
+            if (pray != this.hunter) {
+                this.roles.put(pray, GameRole.PRAY);
+            }
+        }
+        
+        return index;
+    }
+
+    public void reset() {
+        final List<Player> players = this.getPlaying();
+
+        for (int i = 0; i < players.size(); ++i) {
+            final Player player = players.get(i);
+            final Location location = this.spawnPoints.get(i);
+
+            player.setHealth(20);
+            player.setFoodLevel(20);
+            player.clearActivePotionEffects();
+            player.getInventory().clear();
+            player.setGameMode(GameMode.ADVENTURE);
+            this.roles.put(player, GameRole.WAITING);
+
+            player.teleport(location);
+        }
+    }
+    
+    public void alert() {
+        final PotionEffect speed = new PotionEffect(PotionEffectType.SPEED, PotionEffect.INFINITE_DURATION, 1);
+
+        this.playSound(this.hunter, Sound.ENTITY_ENDER_DRAGON_GROWL);
+        this.hunter.showTitle(Title.title(
+                Component.text("CHASSEUR", NamedTextColor.RED),
+                Component.text("Attrapez l'oeuf et tirez sur vos proies !", NamedTextColor.DARK_RED)
+        ));
+        
+        for (final Player pray : this.getPrays()) {
+            this.playSound(pray, Sound.ENTITY_ENDER_DRAGON_GROWL);
+            
+            pray.showTitle(Title.title(
+                    Component.text("PROIE", NamedTextColor.AQUA),
+                    Component.text("Fuyez sans vous faire toucher !", NamedTextColor.DARK_AQUA)
+            ));
+
+            pray.addPotionEffect(speed);
+        }
+    }
+    
+    /**
+     * Marks the player as escaped, which defines its role as {@link GameRole#WAITING} and sets its game mode to
+     * {@link GameMode#SPECTATOR}.
+     *
+     * @param player The escaped player.
+     */
+    public void escape(Player player) {
+        this.roles.put(player, GameRole.WAITING);
+        
+        player.teleport(this.middle);
+        player.setGameMode(GameMode.SPECTATOR);
+        this.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING);
+        player.showTitle(Title.title(
+                Component.text("OUF !", NamedTextColor.GREEN),
+                Component.text("Vous vous êtes enfui... pour le moment.", NamedTextColor.GRAY)
+        ));
+    }
+    
+    public void lose(Player player) {
+        this.setSpectator(player);
+        
+        player.showTitle(Title.title(
+                Component.text("PERDU", NamedTextColor.RED),
+                Component.text("Vous avez été touché par le chasseur !", NamedTextColor.DARK_RED)
+        ));
+        player.sendMessage(Component.text("Vous avez perdu, retentez votre chance la prochaine " +
+                "fois ! Vous pouvez également observer la partie.", NamedTextColor.GOLD));
+    }
+    
+    public void win(Player winner) {
+        winner.setGameMode(GameMode.ADVENTURE);
+        this.playSound(winner, Sound.ENTITY_PLAYER_LEVELUP);
+        winner.showTitle(Title.title(
+                Component.text("VICTOIRE", NamedTextColor.GOLD),
+                Component.text("Vous êtes le meilleur !", NamedTextColor.GREEN)
+        ));
+        winner.sendMessage(Component.text("Félicitations, vous avez été le meilleur joueur de la " +
+                        "partie ! Rejouez tant que vous le souhaitez pour, une fois de plus, montrer votre talent !",
+                NamedTextColor.GREEN));
+        
+        for (final Player gamePlayer : this.getAll()) {
+            gamePlayer.teleport(this.middle);
+            this.playSound(gamePlayer, Sound.ENTITY_WITHER_DEATH);
+
+            if (gamePlayer != winner) {
+                this.setSpectator(gamePlayer);
+                gamePlayer.showTitle(Title.title(
+                        Component.text("FIN DE PARTIE", NamedTextColor.GOLD),
+                        Component.text(winner.getName(), NamedTextColor.RED)
+                                .append(Component.text(" a gagné !", NamedTextColor.AQUA))
+                ));
+            }
+        }
+    }
+
+    /**
+     * Sets the given player as {@link GameRole#SPECTATOR}, changing its {@link GameMode}.
+     *
+     * @param player The player.
+     */
+    public void setSpectator(Player player) {
+        player.setGameMode(GameMode.SPECTATOR);
+        this.roles.put(player, GameRole.SPECTATOR);
+    }
+    
+    /**
+     * Builds a {@link List<Player>} with the role {@link GameRole#PRAY}.
+     *
+     * @return A list of players matching the pray role.
+     */
+    public List<Player> getPrays() {
+        return this.getAll().stream()
+                .filter(player -> this.hasRole(player, GameRole.PRAY))
+                .toList();
+    }
+
+    /**
+     * Builds a {@link List<Player>} composed by players which DO NOT have the role {@link GameRole#SPECTATOR}.
+     *
+     * @return A list of players which are not spectators.
+     */
+    public List<Player> getPlaying() {
+        return this.getAll().stream()
+                .filter(player -> !this.hasRole(player, GameRole.SPECTATOR))
+                .toList();
+    }
+    
+    public List<Player> getAll() {
+        return this.roles.keySet().stream().toList();
+    }
+
+    /**
+     * Checks if the given {@link Player} has the given {@link GameRole}.
+     *
+     * @param player The player.
+     * @param role The role to check.
+     * @return {@code true} if the player actually has the role, {@code false} otherwise.
+     */
+    public boolean hasRole(Player player, GameRole role) {
+        return this.roles.get(player) == role;
+    }
+
+    private int pickRandomPlayer() {
+        final List<Player> players = this.getPlaying();
+        final int index = this.random.nextInt(players.size());
+        
+        this.hunter = players.get(index);
+        return index;
+    }
+    
+    private void playSound(Player player, Sound sound) {
+        player.playSound(player.getLocation(), sound, 1.5f, 1f);
+    }
+    
+}
