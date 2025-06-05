@@ -11,16 +11,33 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
+/**
+ * Class which contains all (sub)command executions of the root {@code /runningegg} command.
+ */
 public class RunningEggCommands {
 
     private final Core core;
     private final FileConfiguration config;
 
+    /**
+     * Class constructor, which needs a {@link Core} instance to save (or remove) positions to (or from) the plugin's
+     * {@code config.yml} file.
+     *
+     * @param core The main plugin instance.
+     */
     public RunningEggCommands(Core core) {
         this.core = core;
         this.config = core.getConfig();
     }
 
+    /**
+     * {@code /runningegg spawn set <spawn_label>} command executor, which defines a new spawn point in the plugin
+     * {@code config.yml} at section {@code spawn_point.spawn_label}, whene {@code spawn_label} is the given spawn point
+     * name.
+     *
+     * @param context The command context.
+     * @return {@link Command#SINGLE_SUCCESS} every time the command was successfully executed.
+     */
     public int setSpawn(CommandContext<CommandSourceStack> context) {
         final String label = context.getArgument("spawn_label", String.class);
         final String path = "spawn_points." + label;
@@ -43,6 +60,14 @@ public class RunningEggCommands {
         return Command.SINGLE_SUCCESS;
     }
 
+    /**
+     * {@code /runningegg spawn delete <spawn_label>} command executor, which deletes the existing spawn point from the
+     * plugin {@code config.yml} file at section {@code spawn_points.spawn_label}, where {@code spawn_label} is the
+     * given spawn point name.
+     *
+     * @param context The command context.
+     * @return {@link Command#SINGLE_SUCCESS} every time the command was successfully executed.
+     */
     public int delSpawn(CommandContext<CommandSourceStack> context) {
         final String label = context.getArgument("spawn_label", String.class);
         final String path = "spawn_points." + label;
@@ -63,6 +88,14 @@ public class RunningEggCommands {
         return Command.SINGLE_SUCCESS;
     }
 
+    /**
+     * {@code /runningegg spawn set <spawn_label>} command executor, which teleports the {@link Player} who executes it
+     * at the location stored in the plugin {@code config.yml} file, at section {@code spawn_points.spawn_label}, where
+     * {@code spawn_label} is the given spawn point name.
+     *
+     * @param context The command context.
+     * @return {@link Command#SINGLE_SUCCESS} every time the command was successfully executed.
+     */
     public int teleportToSpawn(CommandContext<CommandSourceStack> context) {
         final String label = context.getArgument("spawn_label", String.class);
         final String path = "spawn_points." + label;

@@ -12,6 +12,9 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Class which handles the players' entries and exits, and decides whether a new game can start.
+ */
 public class WaitingRoom {
 
     private final List<Player> players;
@@ -20,6 +23,13 @@ public class WaitingRoom {
 
     private int task;
 
+    /**
+     * Class constructor which needs the {@link Core} plugin instance to start a timer to alert player when the game
+     * will start. At the end, a {@link GameStartEvent} will be fired with the given {@link GameSettings}.
+     *
+     * @param core The main plugin instance.
+     * @param settings The game settings.
+     */
     public WaitingRoom(Core core, GameSettings settings) {
         this.core = core;
         this.settings = settings;
@@ -27,6 +37,11 @@ public class WaitingRoom {
         this.task = -1;
     }
 
+    /**
+     * Adds the provided {@link Player} to the list of waiting players.
+     *
+     * @param player The new player.
+     */
     public void join(Player player) {
         this.players.add(player);
 
@@ -35,6 +50,11 @@ public class WaitingRoom {
         }
     }
 
+    /**
+     * Removes the provided {@link Player} from the list of waiting players.
+     *
+     * @param player The leaving player.
+     */
     public void leave(Player player) {
         this.players.remove(player);
 
@@ -43,6 +63,9 @@ public class WaitingRoom {
         }
     }
 
+    /**
+     * Starts the scheduler which will alert every player that a new game will start soon.
+     */
     private void startScheduler() {
         this.task = Bukkit.getScheduler().scheduleSyncRepeatingTask(this.core, new Runnable() {
             private int timer = 30;
@@ -75,6 +98,9 @@ public class WaitingRoom {
         }, 0L, 20L);
     }
 
+    /**
+     * Stops the running scheduler, if it exists.
+     */
     private void stopScheduler() {
         if (this.task != -1) {
             Bukkit.getScheduler().cancelTask(this.task);
@@ -82,10 +108,19 @@ public class WaitingRoom {
         }
     }
 
+    /**
+     * Checks whether a new game can be started.
+     *
+     * @return {@code true} if no running task was already running and if the amount of waiting players is greater or
+     * equal to the minimum amount provided in the class {@link GameSettings}, or {@code false} otherwise.
+     */
     private boolean isStartable() {
         return this.players.size() >= this.settings.minPlayers() && task == -1;
     }
 
+    /**
+     * Stops the working scheduler and empties the list of waiting players.
+     */
     private void reset() {
         this.stopScheduler();
         this.players.clear();

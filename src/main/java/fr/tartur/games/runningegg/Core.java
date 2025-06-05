@@ -17,6 +17,9 @@ import java.util.Optional;
 
 public final class Core extends JavaPlugin {
 
+    /**
+     * Callback triggered when the plugin needs to load its resources.
+     */
     @Override
     public void onEnable() {
         super.saveDefaultConfig();
@@ -55,9 +58,12 @@ public final class Core extends JavaPlugin {
         }
     }
 
+    /**
+     * Callback triggered when the plugin needs to stop.
+     */
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        getLogger().info("Goodbye, my friend! See you very soon! :)");
     }
 
 }

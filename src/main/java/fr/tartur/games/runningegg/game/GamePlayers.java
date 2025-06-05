@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+/**
+ * Class which handles every player interaction during the game progress.
+ */
 public class GamePlayers {
 
     private final Map<Player, GameRole> roles;
@@ -25,6 +28,11 @@ public class GamePlayers {
     private final WorldBorder border;
     private Player hunter;
 
+    /**
+     * Class constructor, which laods many resources depending on the provided {@link Game.Data} instance.
+     *
+     * @param data The game data.
+     */
     public GamePlayers(Game.Data data) {
         this.roles = new HashMap<>();
         this.random = new Random();
@@ -38,7 +46,10 @@ public class GamePlayers {
             this.roles.put(player, GameRole.WAITING);
         }
     }
-    
+
+    /**
+     * Defines a new {@link WorldBorder} to every {@link Player} of the game.
+     */
     public void init() {
         for (final Player player : this.getPlaying()) {
             player.setWorldBorder(this.border);
@@ -61,6 +72,10 @@ public class GamePlayers {
         return index;
     }
 
+    /**
+     * Teleports every player to different spawn points according to the {@link Game.Data}, heals & feeds them, clears
+     * their potion effects & inventory and sets their game mode to {@link GameMode#ADVENTURE}.
+     */
     public void reset() {
         final List<Player> players = this.getPlaying();
 
@@ -78,7 +93,12 @@ public class GamePlayers {
             player.teleport(location);
         }
     }
-    
+
+    /**
+     * Alerts every player whether they are a {@link GameRole#HUNTER} or {@link GameRole#PRAY} using {@link Title} and
+     * {@link Sound} effects. Then, a {@link PotionEffectType#SPEED} of level {@code 1} with
+     * {@link PotionEffect#INFINITE_DURATION} is applied to all players with the role {@link GameRole#PRAY}.
+     */
     public void alert() {
         final PotionEffect speed = new PotionEffect(PotionEffectType.SPEED, PotionEffect.INFINITE_DURATION, 1);
         final Title.Times duration = Title.Times.times(
@@ -124,7 +144,12 @@ public class GamePlayers {
                 Component.text("Vous vous êtes enfui... pour le moment.", NamedTextColor.GRAY)
         ));
     }
-    
+
+    /**
+     * Alerts the provided player that he losed the game using {@link Title} and {@link Sound} effects.
+     *
+     * @param player The losing player.
+     */
     public void lose(Player player) {
         this.setSpectator(player);
         
@@ -135,7 +160,13 @@ public class GamePlayers {
         player.sendMessage(Component.text("Vous avez perdu, retentez votre chance la prochaine " +
                 "fois ! Vous pouvez également observer la partie.", NamedTextColor.GOLD));
     }
-    
+
+    /**
+     * Alerts the provided player that he won the game and every other player that the game has reached its end, using
+     * {@link Title} and {@link Sound} effects.
+     *
+     * @param winner The winning player.
+     */
     public void win(Player winner) {
         winner.setGameMode(GameMode.ADVENTURE);
         this.playSound(winner, Sound.ENTITY_PLAYER_LEVELUP);
@@ -194,7 +225,12 @@ public class GamePlayers {
                 .filter(player -> !this.hasRole(player, GameRole.SPECTATOR))
                 .toList();
     }
-    
+
+    /**
+     * Returns every {@link Player} of the game, without {@link GameRole} distinction.
+     *
+     * @return A {@code List<Player>} of every player watching or participating in the game.
+     */
     public List<Player> getAll() {
         return this.roles.keySet().stream().toList();
     }
@@ -210,6 +246,11 @@ public class GamePlayers {
         return this.roles.get(player) == role;
     }
 
+    /**
+     * Picks a random player from the {@code List<Player>} returned by the {@link this#getPlaying()} method.
+     *
+     * @return A randomly-chosen player.
+     */
     private int pickRandomPlayer() {
         final List<Player> players = this.getPlaying();
         final int index = this.random.nextInt(players.size());
@@ -217,7 +258,13 @@ public class GamePlayers {
         this.hunter = players.get(index);
         return index;
     }
-    
+
+    /**
+     * Plays the provided {@link Sound} to the given {@link Player} at volume {@code 1} and pitch {@code 1}.
+     *
+     * @param player The player to play the sound to.
+     * @param sound The sound to play.
+     */
     private void playSound(Player player, Sound sound) {
         player.playSound(player.getLocation(), sound, 1f, 1f);
     }

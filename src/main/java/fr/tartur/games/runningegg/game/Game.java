@@ -40,7 +40,11 @@ public class Game implements ArrowStopListener, Listener {
         CHASING,
         WIN
     }
-    
+
+    /**
+     * List which stores the {@link HandlerList} of each event listened by the class. Thus, it can be unregistered when
+     * the game ends, allowing the garbage collector to remove it from the memory.
+     */
     private static final List<HandlerList> REGISTERED_EVENTS = List.of(
             PlayerMoveEvent.getHandlerList(),
             PlayerItemFrameChangeEvent.getHandlerList(),
@@ -195,10 +199,16 @@ public class Game implements ArrowStopListener, Listener {
             }
         }
     }
-    
-    // WARNING: This event is called TWICE!
+
+    /**
+     * Event callback triggered when an {@link Egg} hits a block or a player.
+     *
+     * @param event The event.
+     */
     @EventHandler
     public void onHitByEgg(ProjectileHitEvent event) {
+        // WARNING: This event is called TWICE!
+
         if (!(event.getEntity() instanceof Egg && this.eggCanHit)) {
             return;
         }
@@ -227,7 +237,12 @@ public class Game implements ArrowStopListener, Listener {
             this.loop();
         }
     }
-    
+
+    /**
+     * Event callback triggered when a player tries to move while the game state is set to {@link State#CHOOSING}.
+     *
+     * @param event The event.
+     */
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         if (this.state == State.CHOOSING) {
@@ -271,6 +286,11 @@ public class Game implements ArrowStopListener, Listener {
         }
     }
 
+    /**
+     * Kicks every {@link Player} from the game server.
+     *
+     * @param message The message showed to each player on kick.
+     */
     public void kickAll(Component message) {
         for (final Player player : this.players.getAll()) {
             player.kick(message);
@@ -285,7 +305,10 @@ public class Game implements ArrowStopListener, Listener {
     public boolean isRunning() {
         return this.state != State.LOADING;
     }
-    
+
+    /**
+     * Unregisters the class from every event it listens to.
+     */
     public void unregisterEvents() {
         REGISTERED_EVENTS.forEach(handler -> handler.unregister(this));
     }

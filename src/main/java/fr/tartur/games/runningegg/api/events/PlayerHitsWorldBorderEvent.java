@@ -5,18 +5,35 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerEvent;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Event triggered when a {@link Player} hits a world border.
+ */
 public class PlayerHitsWorldBorderEvent extends PlayerEvent {
     
     private static final HandlerList HANDLER_LIST = new HandlerList();
 
+    /**
+     * Class constructor, which saves the {@link Player} instance in memory.
+     * @param player The player who wit the world border.
+     */
     public PlayerHitsWorldBorderEvent(@NotNull Player player) {
         super(player);
     }
 
+    /**
+     * The event's {@link HandlerList}.
+     *
+     * @return The said {@code HandlerList}.
+     */
     public static HandlerList getHandlerList() {
         return HANDLER_LIST;
     }
 
+    /**
+     * The event's {@link HandlerList}.
+     *
+     * @return The said {@code HandlerList}.
+     */
     @Override
     public @NotNull HandlerList getHandlers() {
         return HANDLER_LIST;
