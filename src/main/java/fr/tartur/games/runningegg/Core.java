@@ -5,6 +5,7 @@ import fr.tartur.games.runningegg.commands.RunningEggCommands;
 import fr.tartur.games.runningegg.game.GameManager;
 import fr.tartur.games.runningegg.game.GameSettings;
 import fr.tartur.games.runningegg.game.WaitingRoom;
+import fr.tartur.games.runningegg.listeners.DelayedEventListener;
 import fr.tartur.games.runningegg.listeners.PlayerInvariantListener;
 import fr.tartur.games.runningegg.listeners.PlayerStreamListener;
 import io.papermc.paper.command.brigadier.Commands;
@@ -52,6 +53,7 @@ public final class Core extends JavaPlugin {
             final WaitingRoom waitingRoom = new WaitingRoom(this, settings.get());
             final GameManager gameManager = new GameManager(this, waitingRoom);
 
+            manager.registerEvents(new DelayedEventListener(this), this);
             manager.registerEvents(new PlayerInvariantListener(), this);
             manager.registerEvents(gameManager, this);
             manager.registerEvents(new PlayerStreamListener(gameManager), this);
