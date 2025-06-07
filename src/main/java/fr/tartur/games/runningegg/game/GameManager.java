@@ -3,8 +3,7 @@ package fr.tartur.games.runningegg.game;
 import fr.tartur.games.runningegg.Core;
 import fr.tartur.games.runningegg.api.events.GameEndEvent;
 import fr.tartur.games.runningegg.api.events.GameStartEvent;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -77,9 +76,16 @@ public class GameManager implements Listener {
     public void onGameEnd(GameEndEvent event) {
         final Game game = event.getGame();
         
-        game.kickAll(Component.text("Reconnecte-toi pour jouer à nouveau ! :)", NamedTextColor.GREEN));
         game.unregisterEvents();
         this.games.remove(game);
+        
+        for (final Player player : game.getPlayers().getAll()) {
+            player.clearActivePotionEffects();
+            player.teleport(game.getData().settings().spinLocation());
+            player.setGameMode(GameMode.ADVENTURE);
+            
+            this.waitingRoom.join(player);
+        }
     }
 
     /**

@@ -25,7 +25,6 @@ public class GamePlayers {
     private final Random random;
     private final Location middle;
     private final List<Location> spawnPoints;
-    private final WorldBorder border;
     private Player hunter;
 
     /**
@@ -38,21 +37,9 @@ public class GamePlayers {
         this.random = new Random();
         this.middle = data.settings().spinLocation();
         this.spawnPoints = data.settings().playerLocations();
-        this.border = Bukkit.createWorldBorder();
-        this.border.setCenter(this.middle);
-        this.border.setSize(50);
         
         for (final Player player : data.players()) {
             this.roles.put(player, GameRole.WAITING);
-        }
-    }
-
-    /**
-     * Defines a new {@link WorldBorder} to every {@link Player} of the game.
-     */
-    public void init() {
-        for (final Player player : this.getPlaying()) {
-            player.setWorldBorder(this.border);
         }
     }
     
@@ -115,7 +102,7 @@ public class GamePlayers {
         ));
         
         for (final Player pray : this.getPrays()) {
-            this.playSound(pray, Sound.ENTITY_ENDER_DRAGON_GROWL);
+            this.playSound(pray, Sound.ENTITY_CAT_AMBIENT);
             
             pray.showTitle(Title.title(
                     Component.text("PROIE", NamedTextColor.AQUA),
@@ -171,7 +158,7 @@ public class GamePlayers {
         winner.setGameMode(GameMode.ADVENTURE);
         this.playSound(winner, Sound.ENTITY_PLAYER_LEVELUP);
         winner.showTitle(Title.title(
-                Component.text("VICTOIRE", NamedTextColor.GOLD),
+                Component.text("VICTOIRE", NamedTextColor.GOLD, TextDecoration.BOLD),
                 Component.text("Vous êtes le meilleur !", NamedTextColor.GREEN)
         ));
         winner.sendMessage(Component.text("Félicitations, vous avez été le meilleur joueur de la " +

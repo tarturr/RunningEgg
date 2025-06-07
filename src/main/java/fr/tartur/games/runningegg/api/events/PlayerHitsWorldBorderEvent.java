@@ -13,8 +13,9 @@ public class PlayerHitsWorldBorderEvent extends PlayerEvent {
     private static final HandlerList HANDLER_LIST = new HandlerList();
 
     /**
-     * Class constructor, which saves the {@link Player} instance in memory.
-     * @param player The player who wit the world border.
+     * Class constructor, which saves the provided {@link Player} who touched the world border.
+     * 
+     * @param player The involved player of the event.
      */
     public PlayerHitsWorldBorderEvent(@NotNull Player player) {
         super(player);
