@@ -1,18 +1,17 @@
 package fr.tartur.games.runningegg.game;
 
 import fr.tartur.games.runningegg.Core;
-import fr.tartur.games.runningegg.api.events.GameEndEvent;
-import fr.tartur.games.runningegg.api.events.PlayerHitsWorldBorderEvent;
+import fr.tartur.games.runningegg.api.events.*;
 import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -46,10 +45,12 @@ public class Game implements ArrowStopListener, Listener {
      * the game ends, allowing the garbage collector to remove it from the memory.
      */
     private static final List<HandlerList> REGISTERED_EVENTS = List.of(
-            PlayerMoveEvent.getHandlerList(),
             PlayerItemFrameChangeEvent.getHandlerList(),
             PlayerHitsWorldBorderEvent.getHandlerList(),
-            ProjectileHitEvent.getHandlerList()
+            EntityHitsWorldBorderEvent.getHandlerList(),
+            PlayerHitByEggEvent.getHandlerList(),
+            BlockHitByEggEvent.getHandlerList(),
+            PlayerMoveEvent.getHandlerList()
     );
 
     private final Core core;
@@ -57,10 +58,7 @@ public class Game implements ArrowStopListener, Listener {
     private final Location middle;
     private final FrameManager frame;
     private final GamePlayers players;
-    
     private State state;
-    private boolean eggCanHit;
-    private boolean playerCanHitWorldBorder;
 
     /**
      * Class constructor, which sets the game state as {@link State#LOADING} and loads every resource it needs depending
@@ -77,8 +75,6 @@ public class Game implements ArrowStopListener, Listener {
         this.players = new GamePlayers(data);
         
         this.state = State.LOADING;
-        this.eggCanHit = true;
-        this.playerCanHitWorldBorder = true;
     }
 
     /**
@@ -86,7 +82,9 @@ public class Game implements ArrowStopListener, Listener {
      */
     public void start() {
         if (!this.isRunning()) {
-            this.players.init();
+            final WorldBorder border = this.middle.getWorld().getWorldBorder();
+            border.setCenter(this.middle);
+            border.setSize(50);
             this.loop();
         }
     }
@@ -132,6 +130,9 @@ public class Game implements ArrowStopListener, Listener {
      */
     private void stop(Player winner) {
         if (this.state != State.WIN) {
+            final WorldBorder border = this.middle.getWorld().getWorldBorder();
+            border.setSize(border.getMaxSize());
+            
             this.state = State.WIN;
             this.players.win(winner);
 
@@ -181,61 +182,78 @@ public class Game implements ArrowStopListener, Listener {
      */
     @EventHandler
     public void onPlayerHitsWorldBorder(PlayerHitsWorldBorderEvent event) {
-        if (!this.playerCanHitWorldBorder) {
-            return;
-        }
-        
         final Player player = event.getPlayer();
         
         if (this.players.hasRole(player, GameRole.PRAY)) {
-            this.playerCanHitWorldBorder = false;
             this.players.escape(player);
-            
-            Bukkit.getScheduler().scheduleSyncDelayedTask(this.core,
-                    () -> this.playerCanHitWorldBorder = true, 20L);
 
             if (this.players.getPrays().isEmpty()) {
+                for (final Player playing : this.getPlayers().getPlaying()) {
+                    playing.showTitle(Title.title(
+                            Component.text("PROIES ÉCHAPPÉES", NamedTextColor.DARK_AQUA),
+                            Component.text("Toutes les proies se sont enfuies !", NamedTextColor.LIGHT_PURPLE)
+                    ));
+                }
+                
                 Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, this::loop, 20L * 5L);
             }
         }
     }
 
     /**
-     * Event callback triggered when an {@link Egg} hits a block or a player.
+     * Event callback triggered when a thrown egg hits the {@link WorldBorder}.
+     * 
+     * @param event The event.
+     */
+    @EventHandler
+    public void onEggHitsWorldBorder(EntityHitsWorldBorderEvent event) {
+        if (!(event.getEntity() instanceof final Egg egg)) {
+            return;
+        }
+        
+        egg.remove();
+        this.loop();
+    }
+
+    /**
+     * Event callback triggered when an {@link Egg} hits a {@link Player}.
      *
      * @param event The event.
      */
     @EventHandler
-    public void onHitByEgg(ProjectileHitEvent event) {
-        // WARNING: This event is called TWICE!
-
-        if (!(event.getEntity() instanceof Egg && this.eggCanHit)) {
-            return;
-        }
-        
+    public void onPlayerHitByEgg(PlayerHitByEggEvent event) {
         event.setCancelled(true);
-        this.eggCanHit = false;
-        Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, () -> this.eggCanHit = true, 20L);
-        
-        if (event.getHitEntity() instanceof Player player) {
-            if (this.players.hasRole(player, GameRole.HUNTER)) {
-                player.sendMessage(Component.text("Vous ne pouvez pas vous tirer dessus !",
-                        NamedTextColor.DARK_RED));
-                player.getInventory().addItem(ItemStack.of(Material.EGG));
-                
-                return;
-            } else {
-                this.players.lose(player);
-            }
+
+        final Player player = event.getHitEntity();
+
+        if (this.players.hasRole(player, GameRole.HUNTER)) {
+            player.sendMessage(Component.text("Vous ne pouvez pas vous tirer dessus !",
+                    NamedTextColor.DARK_RED));
+            player.getInventory().addItem(ItemStack.of(Material.EGG));
+
+            return;
+        } else {
+            this.players.lose(player);
         }
-        
+
         final List<Player> players = this.players.getPlaying();
-        
+
         if (players.size() == 1) {
             this.stop(players.getFirst());
         } else {
             this.loop();
         }
+    }
+
+    /**
+     * Event callback triggered when an {@link Egg} hits a {@link Block}.
+     *
+     * @param event The event.
+     */
+    @EventHandler
+    public void onBlockHitByEgg(BlockHitByEggEvent event) {
+        event.setCancelled(true);
+        this.loop();
     }
 
     /**
@@ -266,6 +284,15 @@ public class Game implements ArrowStopListener, Listener {
     }
 
     /**
+     * Gets the players in the current game with a {@link GamePlayers} instance.
+     * 
+     * @return The said player list.
+     */
+    public GamePlayers getPlayers() {
+        return players;
+    }
+
+    /**
      * Checks if the provided {@link Player} is in the game.
      * 
      * @param player The player.
@@ -287,17 +314,6 @@ public class Game implements ArrowStopListener, Listener {
     }
 
     /**
-     * Kicks every {@link Player} from the game server.
-     *
-     * @param message The message showed to each player on kick.
-     */
-    public void kickAll(Component message) {
-        for (final Player player : this.players.getAll()) {
-            player.kick(message);
-        }
-    }
-
-    /**
      * Checks if the game is running.
      * 
      * @return {@code true} if the state is not {@link State#LOADING}, {@code false} otherwise.
@@ -313,4 +329,12 @@ public class Game implements ArrowStopListener, Listener {
         REGISTERED_EVENTS.forEach(handler -> handler.unregister(this));
     }
 
+    /**
+     * Gets the class {@link Game.Data} instance.
+     * 
+     * @return The {@code Game.Data} instance.
+     */
+    public Data getData() {
+        return data;
+    }
 }
