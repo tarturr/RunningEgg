@@ -9,10 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -24,8 +21,8 @@ public class GameManager implements Listener {
 
     private final Logger log;
     private final Core core;
-    private final Set<Game> games;
     private final WaitingRoom waitingRoom;
+    private Game game;
 
     /**
      * Class constructor which needs the {@link Core} plugin instance to register game events, and the
@@ -37,7 +34,6 @@ public class GameManager implements Listener {
     public GameManager(Core core, WaitingRoom waitingRoom) {
         this.log = core.getLogger();
         this.core = core;
-        this.games = new HashSet<>();
         this.waitingRoom = waitingRoom;
     }
 
@@ -61,10 +57,9 @@ public class GameManager implements Listener {
             return;
         }
 
-        final Game game = new Game(core, data);
-        this.games.add(game);
-        this.core.getServer().getPluginManager().registerEvents(game, this.core);
-        game.start();
+        this.game = new Game(core, data);
+        this.core.getServer().getPluginManager().registerEvents(this.game, this.core);
+        this.game.start();
     }
 
     /**
@@ -77,7 +72,7 @@ public class GameManager implements Listener {
         final Game game = event.getGame();
         
         game.unregisterEvents();
-        this.games.remove(game);
+        this.game = null;
         
         for (final Player player : game.getPlayers().getAll()) {
             player.clearActivePotionEffects();
@@ -89,17 +84,12 @@ public class GameManager implements Listener {
     }
 
     /**
-     * Gets the provided {@link Game} where the player lastly was seen wrapped in an {@link Optional} if it exists, or
-     * {@link Optional#empty()} if the game already ended.
+     * Checks whether the class {@link Game} is running.
      *
-     * @param player The player trying to join back its party.
-     * @return An {@code Optional} wrapping a {@code Game} instance if the player's game is still running, or
-     * {@code Optional.empty()} otherwise.
+     * @return {@code true} if the {@code Game} instance is not null, {@code false} otherwise.
      */
-    public Optional<Game> getGameOfPlayer(Player player) {
-        return this.games.stream()
-                .filter(game -> game.isPresent(player))
-                .findFirst();
+    public boolean isGameRunning() {
+        return this.game != null;
     }
 
     /**
@@ -108,7 +98,16 @@ public class GameManager implements Listener {
      * @param player The player waiting for a new game to start.
      */
     public void join(Player player) {
-        this.waitingRoom.join(player);
+        if (!this.isGameRunning()) {
+            player.setGameMode(GameMode.ADVENTURE);
+            player.getInventory().clear();
+            player.clearActivePotionEffects();
+            player.setLevel(0);
+            player.setExp(0);
+            this.waitingRoom.join(player);
+        } else {
+            this.game.connect(player);
+        }
     }
 
     /**
@@ -117,7 +116,11 @@ public class GameManager implements Listener {
      * @param player The leaving player.
      */
     public void leave(Player player) {
-        this.waitingRoom.leave(player);
+        if (this.isGameRunning() && this.game.isPresent(player)) {
+            this.game.disconnect(player);
+        } else {
+            this.waitingRoom.leave(player);
+        }
     }
 
 }

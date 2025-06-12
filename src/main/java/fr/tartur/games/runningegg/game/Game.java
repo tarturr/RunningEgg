@@ -194,8 +194,8 @@ public class Game implements ArrowStopListener, Listener {
                             Component.text("Toutes les proies se sont enfuies !", NamedTextColor.LIGHT_PURPLE)
                     ));
                 }
-                
-                Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, this::loop, 20L * 5L);
+
+                Bukkit.getScheduler().scheduleSyncDelayedTask(this.core, this::loop, 20L * 3L);
             }
         }
     }
@@ -263,9 +263,18 @@ public class Game implements ArrowStopListener, Listener {
      */
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
-        if (this.state == State.CHOOSING) {
+        if (this.state == State.CHOOSING && this.players.getPlaying().contains(event.getPlayer())) {
             event.setCancelled(true);
         }
+    }
+
+    /**
+     * Sets the provided {@link Player} as a {@link GameRole#SPECTATOR} and adds it to the list of game players.
+     *
+     * @param player The connecting player.
+     */
+    public void connect(Player player) {
+        this.players.setSpectator(player);
     }
 
     /**

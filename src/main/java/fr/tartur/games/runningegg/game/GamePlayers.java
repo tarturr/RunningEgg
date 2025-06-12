@@ -146,6 +146,7 @@ public class GamePlayers {
         ));
         player.sendMessage(Component.text("Vous avez perdu, retentez votre chance la prochaine " +
                 "fois ! Vous pouvez également observer la partie.", NamedTextColor.GOLD));
+        this.playSound(player, Sound.ENTITY_BAT_DEATH);
     }
 
     /**
