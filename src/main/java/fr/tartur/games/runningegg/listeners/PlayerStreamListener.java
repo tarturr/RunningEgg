@@ -42,13 +42,12 @@ public class PlayerStreamListener implements Listener {
         final Player player = event.getPlayer();
         final Optional<Game> correspondingGame = this.manager.getGameOfPlayer(player);
 
-        player.setGameMode(GameMode.ADVENTURE);
-        player.getInventory().clear();
-        player.clearActivePotionEffects();
-        player.setLevel(0);
-        player.setExp(0);
-
         if (correspondingGame.isEmpty()) {
+            player.setGameMode(GameMode.ADVENTURE);
+            player.getInventory().clear();
+            player.clearActivePotionEffects();
+            player.setLevel(0);
+            player.setExp(0);
             this.manager.join(player);
         }
     }
